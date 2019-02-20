@@ -2,9 +2,13 @@
 'use strict';
 
 var Json = require("@glennsl/bs-json/src/Json.bs.js");
+var Block = require("bs-platform/lib/js/block.js");
 var Js_dict = require("bs-platform/lib/js/js_dict.js");
+var Belt_Option = require("bs-platform/lib/js/belt_Option.js");
+var Belt_Result = require("bs-platform/lib/js/belt_Result.js");
 var Json_decode = require("@glennsl/bs-json/src/Json_decode.bs.js");
 var Json_encode = require("@glennsl/bs-json/src/Json_encode.bs.js");
+var Caml_js_exceptions = require("bs-platform/lib/js/caml_js_exceptions.js");
 
 var info = Js_dict.fromList(/* :: */[
       /* tuple */[
@@ -37,6 +41,8 @@ var person = Js_dict.fromList(/* :: */[
       /* [] */0
     ]);
 
+var json = JSON.stringify(person);
+
 function decodeInfo(json) {
   return /* record */[
           /* name */Json_decode.field("name", Json_decode.string, json),
@@ -53,7 +59,27 @@ function decodePerson(json) {
   return /* record */[/* info */Json_decode.field("info", decodeInfo, json)];
 }
 
-var decoded = decodePerson(person);
+function decodePersonExn(json) {
+  return decodePerson(Json.parseOrRaise(json));
+}
+
+function decodePersonOption(json) {
+  return Belt_Option.map(Json.parse(json), decodePerson);
+}
+
+function decodePersonResult(json) {
+  try {
+    return /* Ok */Block.__(0, [decodePerson(Json.parseOrRaise(json))]);
+  }
+  catch (raw_exn){
+    var exn = Caml_js_exceptions.internalToOCamlException(raw_exn);
+    if (exn[0] === Json_decode.DecodeError) {
+      return /* Error */Block.__(1, [exn[1]]);
+    } else {
+      throw exn;
+    }
+  }
+}
 
 function encodeInfo(info) {
   return Json_encode.object_(/* :: */[
@@ -91,19 +117,32 @@ function encodePerson(person) {
             ]);
 }
 
-var encoded = Json.stringify(encodePerson(decoded));
+var decodedWithExn = decodePerson(Json.parseOrRaise(json));
 
-console.log(encoded);
+var decodedWithOption = Belt_Option.map(Json.parse(json), decodePerson);
 
-var json = person;
+var decodedWithResult = decodePersonResult(json);
+
+var encodedFromExn = Json.stringify(encodePerson(decodedWithExn));
+
+var encodedFromOption = Belt_Option.getWithDefault(Belt_Option.map(Belt_Option.map(decodedWithOption, encodePerson), Json.stringify), "");
+
+var encodedFromResult = Belt_Result.getWithDefault(Belt_Result.map(Belt_Result.map(decodedWithResult, encodePerson), Json.stringify), "");
 
 exports.info = info;
 exports.person = person;
 exports.json = json;
 exports.decodeInfo = decodeInfo;
 exports.decodePerson = decodePerson;
-exports.decoded = decoded;
+exports.decodePersonExn = decodePersonExn;
+exports.decodePersonOption = decodePersonOption;
+exports.decodePersonResult = decodePersonResult;
 exports.encodeInfo = encodeInfo;
 exports.encodePerson = encodePerson;
-exports.encoded = encoded;
+exports.decodedWithExn = decodedWithExn;
+exports.decodedWithOption = decodedWithOption;
+exports.decodedWithResult = decodedWithResult;
+exports.encodedFromExn = encodedFromExn;
+exports.encodedFromOption = encodedFromOption;
+exports.encodedFromResult = encodedFromResult;
 /* info Not a pure module */
