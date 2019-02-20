@@ -1,3 +1,13 @@
+/** Why are decoder/encoder valuable */
+
+/** 1. Allows you to handle the data at run-time and prevent errors from propogating throughout your codebase */
+
+/** 2. Forces you to validate the correct shape of the data */
+
+/** 3. Ensures you are using the data in your codebase in the correct way */
+
+/** 4. Is the only way to transform the data from the server into data you can actually use */
+
 /** Let's first create a simple JSON string */
 
 /** You can create a JSON string using a Js.Dict.t(Js.Json.t) */
